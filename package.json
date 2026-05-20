@@ -1,0 +1,8 @@
+{
+  "name": "a-stock-kline",
+  "version": "1.0.0",
+  "description": "A股K线图追踪工具",
+  "scripts": {
+    "start": "python3 -m http.server 8080"
+  }
+}
