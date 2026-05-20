@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A股K线图追踪</title>
+    <title>A 股 K 线图追踪</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
@@ -169,12 +169,27 @@
             font-family: 'Courier New', monospace;
             color: #a5b4fc;
         }
+        .demo-notice {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .demo-notice p {
+            color: white;
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>A股K线图追踪</h1>
+            <h1>A 股 K 线图追踪</h1>
+        </div>
+        
+        <div class="demo-notice">
+            <p>🎯 演示版本 - 使用模拟数据展示 K 线图效果，无需 API 即可运行</p>
         </div>
         
         <div class="search-box">
@@ -201,11 +216,11 @@
         <div class="tips">
             <h3>使用说明</h3>
             <ul>
-                <li>输入6位股票代码：如 <code>000001</code>（平安银行）、<code>600000</code>（浦发银行）</li>
-                <li>支持沪深A股、创业板、科创板</li>
-                <li>数据来源：腾讯财经（免费实时数据）</li>
-                <li>K线图包含：开盘价、最高价、最低价、收盘价、成交量</li>
-                <li>注意：如遇API限制，请稍后重试</li>
+                <li>输入 6 位股票代码：如 <code>000001</code>（平安银行）、<code>600000</code>（浦发银行）</li>
+                <li>支持沪深 A 股、创业板、科创板</li>
+                <li>当前为演示版本，使用模拟数据</li>
+                <li>K 线图包含：开盘价、最高价、最低价、收盘价、成交量</li>
+                <li>红涨绿跌显示</li>
             </ul>
         </div>
     </div>
@@ -221,7 +236,29 @@
             });
         }
         
-        // 加载K线数据
+        // 模拟股票数据
+        function getMockStockData(stockCode) {
+            const stockNames = {
+                '000001': '平安银行',
+                '000002': '万科 A',
+                '600000': '浦发银行',
+                '600036': '招商银行',
+                '601318': '中国平安'
+            };
+            
+            const basePrice = 10 + Math.random() * 50;
+            const changePercent = (Math.random() - 0.5) * 10;
+            const change = basePrice * changePercent / 100;
+            
+            return {
+                name: stockNames[stockCode] || '演示股票',
+                price: basePrice,
+                change: change,
+                changePercent: changePercent.toFixed(2)
+            };
+        }
+        
+        // 加载 K 线数据
         async function loadKLineData() {
             const stockCode = document.getElementById('stockCode').value.trim();
             if (!stockCode) {
@@ -230,7 +267,7 @@
             }
             
             if (!/^\d{6}$/.test(stockCode)) {
-                showError('股票代码格式错误，请输入6位数字');
+                showError('股票代码格式错误，请输入 6 位数字');
                 return;
             }
             
@@ -238,42 +275,20 @@
             hideError();
             
             try {
-                // 使用腾讯财经API获取实时数据
-                const url = `https://qt.gtimg.cn/q=${stockCode}`;
-                const response = await fetch(url, {
-                    headers: {
-                        'Referer': 'https://xueqiu.com/'
-                    }
-                });
-                const text = await response.text();
-                
-                if (text.indexOf('v_') === -1 || text === '') {
-                    throw new Error('股票代码不存在或API限制');
-                }
-                
-                // 解析腾讯财经数据格式
-                const data = text.split('~');
-                const stockName = data[1];
-                const currentPrice = parseFloat(data[3]);
-                const prevClose = parseFloat(data[4]);
-                
-                if (isNaN(currentPrice) || currentPrice === 0) {
-                    throw new Error('股票未开盘或数据异常');
-                }
-                
-                const change = currentPrice - prevClose;
-                const changePercent = (change / prevClose * 100).toFixed(2);
+                // 使用模拟数据
+                const mockStockData = getMockStockData(stockCode);
                 
                 // 更新股票信息
-                document.getElementById('stockName').textContent = `${stockName} (${stockCode})`;
-                document.getElementById('currentPrice').textContent = currentPrice.toFixed(2);
-                document.getElementById('currentPrice').className = 'price ' + (change >= 0 ? 'up' : 'down');
-                document.getElementById('priceChange').textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${change >= 0 ? '+' : ''}${changePercent}%)`;
-                document.getElementById('priceChange').className = 'change ' + (change >= 0 ? 'up' : 'down');
+                document.getElementById('stockName').textContent = `${mockStockData.name} (${stockCode})`;
+                document.getElementById('currentPrice').textContent = mockStockData.price.toFixed(2);
+                document.getElementById('currentPrice').className = 'price ' + (mockStockData.change >= 0 ? 'up' : 'down');
+                document.getElementById('priceChange').textContent = `${mockStockData.change >= 0 ? '+' : ''}${mockStockData.change.toFixed(2)} (${mockStockData.change >= 0 ? '+' : ''}${mockStockData.changePercent}%)`;
+                document.getElementById('priceChange').className = 'change ' + (mockStockData.change >= 0 ? 'up' : 'down');
                 document.getElementById('stockInfo').classList.add('active');
                 
-                // 获取历史K线数据
-                await loadHistoricalData(stockCode, change >= 0 ? 'ef4444' : '22c55e');
+                // 生成并渲染 K 线数据
+                const klineData = generateMockKLineData(stockCode, mockStockData.change >= 0 ? 'ef4444' : '22c55e');
+                renderChart(klineData);
                 
             } catch (error) {
                 showError('获取数据失败：' + error.message);
@@ -283,23 +298,8 @@
             }
         }
         
-        // 加载历史K线数据
-        async function loadHistoricalData(stockCode, color) {
-            try {
-                // 尝试从东方财富获取历史数据（需要后端代理，这里使用模拟数据）
-                // 由于跨域限制，免费API无法直接在浏览器中调用
-                const mockData = generateMockKLineData(stockCode, color);
-                
-                renderChart(mockData, color);
-                
-            } catch (error) {
-                console.error('加载历史数据失败:', error);
-                showError('加载K线数据失败');
-            }
-        }
-        
-        // 生成模拟K线数据（演示用）
-        function generateMockKLineData(stockCode, color) {
+        // 生成模拟 K 线数据
+        function generateMockKLineData(stockCode) {
             const data = [];
             const volumes = [];
             const dates = [];
@@ -319,7 +319,7 @@
                 const low = Math.min(open, close) * (1 - Math.random() * 0.02);
                 const volume = Math.floor(Math.random() * 1000000) + 500000;
                 
-                data.push([open, close, low, high]);
+                data.push([open.toFixed(2), close.toFixed(2), low.toFixed(2), high.toFixed(2)]);
                 volumes.push(volume);
                 
                 basePrice = close;
@@ -329,11 +329,11 @@
         }
         
         // 渲染图表
-        function renderChart(klineData, color) {
+        function renderChart(klineData) {
             const option = {
                 backgroundColor: '#1e293b',
                 title: {
-                    text: 'K线图',
+                    text: 'K 线图（60 日）',
                     left: 'center',
                     textStyle: {
                         color: '#f8fafc'
@@ -351,7 +351,7 @@
                     }
                 },
                 legend: {
-                    data: ['K线', '成交量'],
+                    data: ['K 线', '成交量'],
                     top: 30,
                     textStyle: {
                         color: '#e2e8f0'
@@ -480,7 +480,7 @@
                 ],
                 series: [
                     {
-                        name: 'K线',
+                        name: 'K 线',
                         type: 'candlestick',
                         data: klineData.data,
                         itemStyle: {
