@@ -111,6 +111,36 @@
         .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
         .empty-state p { font-size: 1.1rem; }
         
+        /* News section */
+        .news-section {
+            background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+            border-top: 3px solid #3b82f6;
+        }
+        .news-section h3 { color: #93c5fd; margin-bottom: 16px; font-size: 1.1rem; }
+        .news-card {
+            background: #0f172a; border-radius: 8px; padding: 16px; margin-bottom: 12px;
+        }
+        .news-card .news-title { color: #e2e8f0; font-weight: 600; font-size: 1rem; }
+        .news-card .news-desc { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
+        .news-card .news-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .news-card .news-tag {
+            padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;
+            background: #1e293b; color: #64748b;
+        }
+        .news-card .news-tag.sector {
+            background: #1e3a5f; color: #93c5fd;
+        }
+        .news-card .news-tag.impact-high { background: #7f1d1d; color: #fca5a5; }
+        .news-card .news-tag.impact-mid { background: #713f12; color: #fde047; }
+        .news-card .news-tag.impact-low { background: #166534; color: #86efac; }
+        
+        .policy-summary {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1a2340 100%);
+            border-radius: 12px; padding: 20px; margin-bottom: 20px;
+        }
+        .policy-summary h4 { color: #93c5fd; font-size: 0.95rem; margin-bottom: 8px; }
+        .policy-summary p { color: #cbd5e1; font-size: 0.9rem; line-height: 1.6; }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .signal-card .stock-header { flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -122,7 +152,7 @@
     <div class="container">
         <div class="header">
             <h1>🔍 A 股分析工具</h1>
-            <p>K 线图追踪 + 每日条件选股复盘</p>
+            <p>K 线图追踪 + 每日条件选股复盘 + 新闻联播政策分析</p>
         </div>
         
         <div class="tabs">
@@ -285,9 +315,47 @@ function renderReport(d) {
         html += `<div class="empty-state"><div class="icon">🔍</div><p>暂无符合条件的信号</p></div>`;
     }
     
+    // 新闻联播分析
+    if (d.xinwen_lianbo) {
+        html += renderXinwenLianbo(d.xinwen_lianbo);
+    }
+    
     html += `<div style="text-align:center;color:#475569;font-size:0.8rem;margin-top:30px;padding:20px;">
-        数据来源：腾讯财经 | 不构成投资建议
+        数据来源：腾讯财经 + 新华网/央视网 | 不构成投资建议
     </div>`;
+    
+    return html;
+}
+
+// ===== 新闻联播渲染 =====
+function renderXinwenLianbo(xwlb) {
+    let html = `<h3 style="margin:30px 0 16px;color:#93c5fd;">📺 新闻联播政策分析</h3>`;
+    
+    if (xwlb.summary) {
+        html += `<div class="policy-summary">
+            <h4>🎯 今日政策主线</h4>
+            <p>${xwlb.summary}</p>
+        </div>`;
+    }
+    
+    if (xwlb.items && xwlb.items.length > 0) {
+        xwlb.items.forEach(item => {
+            const sign = item.type === '利好' ? '🟢' : (item.type === '中性' ? '🟡' : '🔴');
+            let impactClass = 'impact-low';
+            if (item.impact === '重大') impactClass = 'impact-high';
+            else if (item.impact === '中等') impactClass = 'impact-mid';
+            
+            html += `<div class="news-card">
+                <div class="news-title">${item.title} ${sign}</div>
+                <div class="news-desc">${item.desc || ''}</div>
+                <div class="news-tags">
+                    <span class="news-tag sector">🏭 ${item.sector}</span>
+                    <span class="news-tag ${impactClass}">${item.impact}影响</span>
+                    <span class="news-tag">${item.type}</span>
+                </div>
+            </div>`;
+        });
+    }
     
     return html;
 }
