@@ -1,0 +1,16 @@
+{
+  "date": "2026-06-20 17:14",
+  "index": {"name": "上证指数", "price": 4031.51, "change_pct": 1.12},
+  "total_stocks": 18,
+  "strong_signals": 6,
+  "medium_signals": 8,
+  "multi_head_count": 5,
+  "stocks": [
+    {"code":"000333","name":"美的集团","price":72.35,"change_pct":2.15,"ma5":71.20,"ma18":69.85,"ma31":68.50,"multi_head":true,"volume_up":true,"score":3},
+    {"code":"600036","name":"招商银行","price":42.18,"change_pct":1.85,"ma5":41.80,"ma18":40.95,"ma31":40.20,"multi_head":true,"volume_up":true,"score":3},
+    {"code":"601398","name":"工商银行","price":7.34,"change_pct":0.82,"ma5":7.28,"ma18":7.22,"ma31":7.18,"multi_head":true,"volume_up":true,"score":3},
+    {"code":"601166","name":"兴业银行","price":18.60,"change_pct":1.69,"ma5":18.49,"ma18":17.92,"ma31":17.96,"multi_head":false,"volume_up":true,"score":2},
+    {"code":"000725","name":"京东方Ａ","price":6.43,"change_pct":4.55,"ma5":5.80,"ma18":5.10,"ma31":4.71,"multi_head":true,"volume_up":true,"score":3},
+    {"code":"601939","name":"建设银行","price":10.22,"change_pct":1.89,"ma5":10.11,"ma18":10.01,"ma31":9.90,"multi_head":true,"volume_up":true,"score":3}
+  ]
+}

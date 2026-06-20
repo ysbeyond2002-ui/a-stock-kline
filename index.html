@@ -3,540 +3,323 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A 股 K 线图追踪</title>
+    <title>A 股 K 线图 + 每日复盘</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
             background: #0f172a;
             color: #e2e8f0;
             padding: 20px;
         }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
         .header h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
+            font-size: 2rem; margin-bottom: 5px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
+        .header p { color: #94a3b8; font-size: 0.9rem; }
+        
+        /* Tab Navigation */
+        .tabs {
+            display: flex; gap: 4px; margin-bottom: 20px;
+            background: #1e293b; border-radius: 12px; padding: 4px;
+        }
+        .tab {
+            flex: 1; padding: 12px 20px; text-align: center; cursor: pointer;
+            border-radius: 8px; font-size: 1rem; font-weight: 500;
+            color: #94a3b8; transition: all 0.3s; border: none; background: none;
+        }
+        .tab:hover { color: #e2e8f0; background: #334155; }
+        .tab.active { color: #fff; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* K-line section */
         .search-box {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;
         }
         .search-box input {
-            padding: 12px 20px;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            background: #1e293b;
-            color: #e2e8f0;
-            font-size: 16px;
-            width: 300px;
-            transition: all 0.3s;
+            padding: 12px 20px; border: 1px solid #334155; border-radius: 8px;
+            background: #1e293b; color: #e2e8f0; font-size: 16px; width: 300px; transition: all 0.3s;
         }
-        .search-box input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
+        .search-box input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
         .search-box button {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 500;
+            padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none; border-radius: 8px; color: white; font-size: 16px; cursor: pointer;
+            transition: all 0.3s; font-weight: 500;
         }
-        .search-box button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        .search-box button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .search-box button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
         .stock-info {
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: none;
+            background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none;
         }
-        .stock-info.active {
-            display: block;
+        .stock-info.active { display: block; }
+        .stock-info .price { font-size: 2rem; font-weight: bold; }
+        .price.up { color: #ef4444; } .price.down { color: #22c55e; }
+        .change { font-size: 1.2rem; margin-bottom: 20px; }
+        .change.up { color: #ef4444; } .change.down { color: #22c55e; }
+        .chart-container { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        #klineChart { width: 100%; height: 500px; }
+        .loading { text-align: center; padding: 40px; color: #94a3b8; }
+        .error { background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; padding: 16px; border-radius: 8px; display: none; }
+        .error.active { display: block; }
+        
+        /* Report Section */
+        .report-header {
+            background: linear-gradient(135deg, #1e293b 0%, #1a2340 100%);
+            border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 20px;
         }
-        .stock-info h2 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            color: #f8fafc;
+        .report-header .date { color: #94a3b8; font-size: 0.9rem; margin-bottom: 8px; }
+        .report-header .index-price { font-size: 2.2rem; font-weight: bold; color: #f8fafc; }
+        .report-header .index-change { font-size: 1.1rem; margin-top: 4px; }
+        .report-header .index-change.up { color: #ef4444; }
+        .report-header .index-change.down { color: #22c55e; }
+        .report-stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px; margin-bottom: 24px;
         }
-        .stock-info .price {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
+        .stat-card {
+            background: #1e293b; border-radius: 12px; padding: 20px; text-align: center;
         }
-        .stock-info .price.up {
-            color: #ef4444;
+        .stat-card .num { font-size: 2rem; font-weight: bold; color: #667eea; }
+        .stat-card .label { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
+        .stat-card .num.green { color: #22c55e; }
+        .stat-card .num.red { color: #ef4444; }
+        
+        .signal-card {
+            background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 16px;
+            border-left: 4px solid #22c55e;
         }
-        .stock-info .price.down {
-            color: #22c55e;
+        .signal-card.medium { border-left-color: #eab308; }
+        .signal-card .stock-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
         }
-        .stock-info .change {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
+        .signal-card .stock-name { font-size: 1.2rem; font-weight: 600; }
+        .signal-card .stock-code { color: #64748b; font-size: 0.85rem; }
+        .signal-card .stock-price { font-size: 1.3rem; font-weight: bold; }
+        .signal-card .stock-change { font-size: 0.95rem; }
+        .signal-card .ma-info { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
+        .signal-card .ma-info .tag {
+            padding: 4px 10px; border-radius: 4px; font-size: 0.8rem;
+            background: #334155; color: #94a3b8;
         }
-        .stock-info .change.up {
-            color: #ef4444;
-        }
-        .stock-info .change.down {
-            color: #22c55e;
-        }
-        .chart-container {
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        #klineChart {
-            width: 100%;
-            height: 500px;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #94a3b8;
-            font-size: 1.1rem;
-        }
-        .error {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-            padding: 16px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-        }
-        .error.active {
-            display: block;
-        }
-        .tips {
-            background: #334155;
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 20px;
-        }
-        .tips h3 {
-            font-size: 1rem;
-            margin-bottom: 10px;
-            color: #f8fafc;
-        }
-        .tips ul {
-            list-style: none;
-            padding-left: 0;
-        }
-        .tips li {
-            padding: 8px 0;
-            border-bottom: 1px solid #475569;
-        }
-        .tips li:last-child {
-            border-bottom: none;
-        }
-        .tips code {
-            background: #1e293b;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            color: #a5b4fc;
-        }
-        .demo-notice {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .demo-notice p {
-            color: white;
-            font-size: 0.95rem;
+        .signal-card .ma-info .tag.active { background: #166534; color: #86efac; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #475569; }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+        .empty-state p { font-size: 1.1rem; }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .signal-card .stock-header { flex-direction: column; align-items: flex-start; gap: 4px; }
+            .report-stats { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>A 股 K 线图追踪</h1>
+            <h1>🔍 A 股分析工具</h1>
+            <p>K 线图追踪 + 每日条件选股复盘</p>
         </div>
         
-        <div class="demo-notice">
-            <p>🎯 演示版本 - 使用模拟数据展示 K 线图效果，无需 API 即可运行</p>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('kline')">📊 K 线图</button>
+            <button class="tab" onclick="switchTab('report')">📋 每日复盘</button>
         </div>
         
-        <div class="search-box">
-            <input type="text" id="stockCode" placeholder="输入股票代码（如：000001、600000）" value="000001">
-            <button onclick="loadKLineData()">查询</button>
+        <!-- K-line Tab -->
+        <div class="tab-content active" id="tab-kline">
+            <div class="search-box">
+                <input type="text" id="stockCode" placeholder="输入股票代码（如：000001）" value="000001">
+                <button onclick="loadKLineData()">查询</button>
+            </div>
+            <div class="error" id="errorBox"></div>
+            <div class="stock-info" id="stockInfo">
+                <h2 id="stockName">--</h2>
+                <div class="price" id="currentPrice">--</div>
+                <div class="change" id="priceChange">--</div>
+            </div>
+            <div class="chart-container">
+                <div id="klineChart"></div>
+            </div>
+            <div class="loading" id="loading" style="display:none;">加载中...</div>
         </div>
         
-        <div class="error" id="errorBox"></div>
-        
-        <div class="stock-info" id="stockInfo">
-            <h2 id="stockName">--</h2>
-            <div class="price" id="currentPrice">--</div>
-            <div class="change" id="priceChange">--</div>
-        </div>
-        
-        <div class="chart-container">
-            <div id="klineChart"></div>
-        </div>
-        
-        <div class="loading" id="loading" style="display: none;">
-            加载中...
-        </div>
-        
-        <div class="tips">
-            <h3>使用说明</h3>
-            <ul>
-                <li>输入 6 位股票代码：如 <code>000001</code>（平安银行）、<code>600000</code>（浦发银行）</li>
-                <li>支持沪深 A 股、创业板、科创板</li>
-                <li>当前为演示版本，使用模拟数据</li>
-                <li>K 线图包含：开盘价、最高价、最低价、收盘价、成交量</li>
-                <li>红涨绿跌显示</li>
-            </ul>
+        <!-- Report Tab -->
+        <div class="tab-content" id="tab-report">
+            <div id="reportLoading" class="loading">加载复盘数据...</div>
+            <div id="reportContent"></div>
         </div>
     </div>
 
-    <script>
-        let chart = null;
-        
-        // 初始化图表
-        function initChart() {
-            chart = echarts.init(document.getElementById('klineChart'));
-            window.addEventListener('resize', () => {
-                chart.resize();
-            });
-        }
-        
-        // 模拟股票数据
-        function getMockStockData(stockCode) {
-            const stockNames = {
-                '000001': '平安银行',
-                '000002': '万科 A',
-                '600000': '浦发银行',
-                '600036': '招商银行',
-                '601318': '中国平安'
-            };
-            
-            const basePrice = 10 + Math.random() * 50;
-            const changePercent = (Math.random() - 0.5) * 10;
-            const change = basePrice * changePercent / 100;
-            
-            return {
-                name: stockNames[stockCode] || '演示股票',
-                price: basePrice,
-                change: change,
-                changePercent: changePercent.toFixed(2)
-            };
-        }
-        
-        // 加载 K 线数据
-        async function loadKLineData() {
-            const stockCode = document.getElementById('stockCode').value.trim();
-            if (!stockCode) {
-                showError('请输入股票代码');
-                return;
-            }
-            
-            if (!/^\d{6}$/.test(stockCode)) {
-                showError('股票代码格式错误，请输入 6 位数字');
-                return;
-            }
-            
-            showLoading(true);
-            hideError();
-            
-            try {
-                // 使用模拟数据
-                const mockStockData = getMockStockData(stockCode);
-                
-                // 更新股票信息
-                document.getElementById('stockName').textContent = `${mockStockData.name} (${stockCode})`;
-                document.getElementById('currentPrice').textContent = mockStockData.price.toFixed(2);
-                document.getElementById('currentPrice').className = 'price ' + (mockStockData.change >= 0 ? 'up' : 'down');
-                document.getElementById('priceChange').textContent = `${mockStockData.change >= 0 ? '+' : ''}${mockStockData.change.toFixed(2)} (${mockStockData.change >= 0 ? '+' : ''}${mockStockData.changePercent}%)`;
-                document.getElementById('priceChange').className = 'change ' + (mockStockData.change >= 0 ? 'up' : 'down');
-                document.getElementById('stockInfo').classList.add('active');
-                
-                // 生成并渲染 K 线数据
-                const klineData = generateMockKLineData(stockCode, mockStockData.change >= 0 ? 'ef4444' : '22c55e');
-                renderChart(klineData);
-                
-            } catch (error) {
-                showError('获取数据失败：' + error.message);
-                document.getElementById('stockInfo').classList.remove('active');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        // 生成模拟 K 线数据
-        function generateMockKLineData(stockCode) {
-            const data = [];
-            const volumes = [];
-            const dates = [];
-            
-            let basePrice = 10 + Math.random() * 20;
-            const days = 60;
-            
-            for (let i = 0; i < days; i++) {
-                const date = new Date();
-                date.setDate(date.getDate() - (days - i));
-                dates.push(`${date.getMonth() + 1}/${date.getDate()}`);
-                
-                const volatility = 0.03;
-                const open = basePrice * (1 + (Math.random() - 0.5) * volatility);
-                const close = open * (1 + (Math.random() - 0.5) * volatility);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.02);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.02);
-                const volume = Math.floor(Math.random() * 1000000) + 500000;
-                
-                data.push([open.toFixed(2), close.toFixed(2), low.toFixed(2), high.toFixed(2)]);
-                volumes.push(volume);
-                
-                basePrice = close;
-            }
-            
-            return { dates, data, volumes };
-        }
-        
-        // 渲染图表
-        function renderChart(klineData) {
-            const option = {
-                backgroundColor: '#1e293b',
-                title: {
-                    text: 'K 线图（60 日）',
-                    left: 'center',
-                    textStyle: {
-                        color: '#f8fafc'
-                    }
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'cross'
-                    },
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                    borderColor: '#334155',
-                    textStyle: {
-                        color: '#e2e8f0'
-                    }
-                },
-                legend: {
-                    data: ['K 线', '成交量'],
-                    top: 30,
-                    textStyle: {
-                        color: '#e2e8f0'
-                    }
-                },
-                grid: [
-                    {
-                        left: '10%',
-                        right: '8%',
-                        height: '50%'
-                    },
-                    {
-                        left: '10%',
-                        right: '8%',
-                        top: '63%',
-                        height: '16%'
-                    }
-                ],
-                xAxis: [
-                    {
-                        type: 'category',
-                        data: klineData.dates,
-                        scale: true,
-                        boundaryGap: false,
-                        axisLine: {
-                            lineStyle: {
-                                color: '#475569'
-                            }
-                        },
-                        splitLine: {
-                            show: false
-                        },
-                        axisLabel: {
-                            color: '#94a3b8'
-                        },
-                        min: 'dataMin',
-                        max: 'dataMax'
-                    },
-                    {
-                        type: 'category',
-                        gridIndex: 1,
-                        data: klineData.dates,
-                        scale: true,
-                        boundaryGap: false,
-                        axisLine: {
-                            onZero: false,
-                            lineStyle: {
-                                color: '#475569'
-                            }
-                        },
-                        axisTick: {
-                            show: false
-                        },
-                        splitLine: {
-                            show: false
-                        },
-                        axisLabel: {
-                            show: false
-                        },
-                        min: 'dataMin',
-                        max: 'dataMax'
-                    }
-                ],
-                yAxis: [
-                    {
-                        scale: true,
-                        splitArea: {
-                            show: true
-                        },
-                        splitLine: {
-                            lineStyle: {
-                                color: '#334155'
-                            }
-                        },
-                        axisLabel: {
-                            color: '#94a3b8'
-                        },
-                        axisLine: {
-                            lineStyle: {
-                                color: '#475569'
-                            }
-                        }
-                    },
-                    {
-                        scale: true,
-                        gridIndex: 1,
-                        splitNumber: 2,
-                        axisLabel: {
-                            show: false
-                        },
-                        axisLine: {
-                            show: false
-                        },
-                        axisTick: {
-                            show: false
-                        },
-                        splitLine: {
-                            show: false
-                        }
-                    }
-                ],
-                dataZoom: [
-                    {
-                        type: 'inside',
-                        xAxisIndex: [0, 1],
-                        start: 50,
-                        end: 100
-                    },
-                    {
-                        show: true,
-                        xAxisIndex: [0, 1],
-                        type: 'slider',
-                        top: '85%',
-                        start: 50,
-                        end: 100,
-                        borderColor: '#334155',
-                        backgroundColor: '#1e293b',
-                        fillerColor: 'rgba(102, 126, 234, 0.2)',
-                        handleStyle: {
-                            color: '#667eea'
-                        },
-                        textStyle: {
-                            color: '#94a3b8'
-                        }
-                    }
-                ],
-                series: [
-                    {
-                        name: 'K 线',
-                        type: 'candlestick',
-                        data: klineData.data,
-                        itemStyle: {
-                            color: '#ef4444',
-                            color0: '#22c55e',
-                            borderColor: '#ef4444',
-                            borderColor0: '#22c55e'
-                        }
-                    },
-                    {
-                        name: '成交量',
-                        type: 'bar',
-                        xAxisIndex: 1,
-                        yAxisIndex: 1,
-                        data: klineData.volumes,
-                        itemStyle: {
-                            color: (params) => {
-                                const index = params.dataIndex;
-                                if (index === 0) return '#667eea';
-                                return klineData.data[index][1] >= klineData.data[index][0] ? '#ef4444' : '#22c55e';
-                            }
-                        }
-                    }
-                ]
-            };
-            
-            chart.setOption(option);
-        }
-        
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
-        
-        function showError(message) {
-            const errorBox = document.getElementById('errorBox');
-            errorBox.textContent = message;
-            errorBox.classList.add('active');
-        }
-        
-        function hideError() {
-            document.getElementById('errorBox').classList.remove('active');
-        }
-        
-        // 页面加载完成后初始化
-        window.addEventListener('load', () => {
-            initChart();
-            // 默认加载一只股票
-            loadKLineData();
+<script>
+// ===== Tab Switching =====
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.tab[onclick*="${name}"]`).classList.add('active');
+    document.getElementById(`tab-${name}`).classList.add('active');
+    if (name === 'report') loadReport();
+    if (name === 'kline') setTimeout(() => chart?.resize(), 100);
+}
+
+// ===== K-line (unchanged) =====
+let chart = null;
+function initChart() {
+    chart = echarts.init(document.getElementById('klineChart'));
+    window.addEventListener('resize', () => chart?.resize());
+}
+
+function loadKLineData() {
+    const stockCode = document.getElementById('stockCode').value.trim();
+    if (!stockCode || !/^\d{6}$/.test(stockCode)) {
+        document.getElementById('errorBox').textContent = '请输入 6 位股票代码';
+        document.getElementById('errorBox').classList.add('active');
+        return;
+    }
+    document.getElementById('errorBox').classList.remove('active');
+    document.getElementById('loading').style.display = 'block';
+    
+    // Mock data
+    const names = {'000001':'平安银行','000002':'万科A','600000':'浦发银行','600036':'招商银行','601318':'中国平安','000333':'美的集团','000725':'京东方A','600519':'贵州茅台','000858':'五粮液'};
+    const base = 10 + Math.random() * 50;
+    const change = (Math.random() - 0.5) * 6;
+    
+    const el = document.getElementById('stockInfo');
+    el.classList.add('active');
+    document.getElementById('stockName').textContent = (names[stockCode]||'演示股票') + ' ('+stockCode+')';
+    document.getElementById('currentPrice').textContent = base.toFixed(2);
+    document.getElementById('currentPrice').className = 'price ' + (change>=0?'up':'down');
+    document.getElementById('priceChange').textContent = (change>=0?'+':'')+change.toFixed(2)+'%';
+    document.getElementById('priceChange').className = 'change ' + (change>=0?'up':'down');
+    
+    const data = [], volumes = [], dates = [];
+    let p = base;
+    const days = 60;
+    for (let i=0;i<days;i++) {
+        const d = new Date(); d.setDate(d.getDate()-(days-i));
+        dates.push((d.getMonth()+1)+'/'+d.getDate());
+        const v = 0.03;
+        const o = p*(1+(Math.random()-0.5)*v);
+        const c = o*(1+(Math.random()-0.5)*v);
+        data.push([o.toFixed(2),c.toFixed(2),Math.min(o,c)*(1-Math.random()*0.02),Math.max(o,c)*(1+Math.random()*0.02)]);
+        volumes.push(Math.floor(Math.random()*1000000)+500000);
+        p = c;
+    }
+    
+    chart.setOption({
+        backgroundColor:'#1e293b',
+        title:{text:'K 线图（60 日）',left:'center',textStyle:{color:'#f8fafc'}},
+        tooltip:{trigger:'axis',axisPointer:{type:'cross'},backgroundColor:'rgba(15,23,42,0.9)',borderColor:'#334155',textStyle:{color:'#e2e8f0'}},
+        grid:[{left:'10%',right:'8%',height:'50%'},{left:'10%',right:'8%',top:'63%',height:'16%'}],
+        xAxis:[{type:'category',data:dates,boundaryGap:false,axisLine:{lineStyle:{color:'#475569'}},splitLine:{show:false},axisLabel:{color:'#94a3b8'}},
+               {type:'category',gridIndex:1,data:dates,boundaryGap:false,axisLine:{onZero:false,lineStyle:{color:'#475569'}},splitLine:{show:false},axisLabel:{show:false}}],
+        yAxis:[{scale:true,splitLine:{lineStyle:{color:'#334155'}},axisLabel:{color:'#94a3b8'}},{scale:true,gridIndex:1,splitNumber:2,axisLabel:{show:false},axisLine:{show:false},splitLine:{show:false}}],
+        dataZoom:[{type:'inside',xAxisIndex:[0,1],start:50,end:100},{show:true,xAxisIndex:[0,1],type:'slider',top:'85%',start:50,end:100,borderColor:'#334155',backgroundColor:'#1e293b',fillerColor:'rgba(102,126,234,0.2)',handleStyle:{color:'#667eea'},textStyle:{color:'#94a3b8'}}],
+        series:[{name:'K线',type:'candlestick',data:data,itemStyle:{color:'#ef4444',color0:'#22c55e',borderColor:'#ef4444',borderColor0:'#22c55e'}},
+                {name:'成交量',type:'bar',xAxisIndex:1,yAxisIndex:1,data:volumes,itemStyle:{color:(p)=>data[p.dataIndex][1]>=data[p.dataIndex][0]?'#ef4444':'#22c55e'}}]
+    });
+    document.getElementById('loading').style.display = 'none';
+}
+
+document.getElementById('stockCode').addEventListener('keypress', e => { if(e.key==='Enter') loadKLineData(); });
+window.addEventListener('load', () => { initChart(); loadKLineData(); });
+
+// ===== Report =====
+async function loadReport() {
+    const loading = document.getElementById('reportLoading');
+    const content = document.getElementById('reportContent');
+    loading.style.display = 'block';
+    
+    try {
+        const resp = await fetch('report.json?_=' + Date.now());
+        const data = await resp.json();
+        loading.style.display = 'none';
+        content.innerHTML = renderReport(data);
+    } catch(e) {
+        loading.style.display = 'none';
+        content.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>暂无复盘数据</p><p style="font-size:0.9rem;color:#64748b;margin-top:8px;">将在交易日自动生成</p></div>`;
+    }
+}
+
+function renderReport(d) {
+    const idx = d.index || {};
+    const idxCls = idx.change_pct >= 0 ? 'up' : 'down';
+    const idxSign = idx.change_pct >= 0 ? '+' : '';
+    
+    const strong = d.strong_signals || [];
+    const medium = d.medium_signals || [];
+    
+    let html = `
+    <div class="report-header">
+        <div class="date">🕐 更新于 ${d.date}</div>
+        <div class="index-price">${idx.price?.toFixed(2) || '--'}</div>
+        <div class="index-change ${idxCls}">${idx.name || '上证指数'} ${idxSign}${idx.change_pct?.toFixed(2) || '0'}%</div>
+    </div>
+    
+    <div class="report-stats">
+        <div class="stat-card"><div class="num">${d.total_stocks||0}</div><div class="label">扫描股票</div></div>
+        <div class="stat-card"><div class="num green">${strong.length}</div><div class="label">强信号 🟢</div></div>
+        <div class="stat-card"><div class="num" style="color:#eab308">${medium.length}</div><div class="label">弱信号 🟡</div></div>
+        <div class="stat-card"><div class="num">${d.multi_head_count||0}</div><div class="label">多头排列 📈</div></div>
+    </div>`;
+    
+    if (strong.length > 0) {
+        html += `<h3 style="margin-bottom:16px;color:#86efac;">🟢 强信号股票（满足 2+ 条件）</h3>`;
+        strong.forEach(s => {
+            html += renderStockCard(s, 'strong');
         });
-        
-        // 回车键搜索
-        document.getElementById('stockCode').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                loadKLineData();
-            }
+    }
+    
+    if (medium.length > 0) {
+        html += `<h3 style="margin:24px 0 16px;color:#fde047;">🟡 关注中</h3>`;
+        medium.forEach(s => {
+            html += renderStockCard(s, 'medium');
         });
-    </script>
+    }
+    
+    if (strong.length === 0 && medium.length === 0) {
+        html += `<div class="empty-state"><div class="icon">🔍</div><p>暂无符合条件的信号</p></div>`;
+    }
+    
+    html += `<div style="text-align:center;color:#475569;font-size:0.8rem;margin-top:30px;padding:20px;">
+        数据来源：腾讯财经 | 不构成投资建议
+    </div>`;
+    
+    return html;
+}
+
+function renderStockCard(s, level) {
+    const changeCls = (s.change_pct||0) >= 0 ? 'up' : 'down';
+    const sign = (s.change_pct||0) >= 0 ? '+' : '';
+    const cls = level === 'strong' ? '' : 'medium';
+    
+    let tags = '';
+    if (s.multi_head) tags += `<span class="tag active">📈 多头排列</span>`;
+    if (s.volume_up) tags += `<span class="tag active">📊 放量</span>`;
+    if (!s.multi_head && !s.volume_up) tags += `<span class="tag">观察中</span>`;
+    
+    return `
+    <div class="signal-card ${cls}">
+        <div class="stock-header">
+            <div>
+                <span class="stock-name">${s.name}</span>
+                <span class="stock-code">${s.code}</span>
+            </div>
+            <div>
+                <span class="stock-price ${changeCls}">${s.price?.toFixed(2) || '--'}</span>
+                <span class="stock-change ${changeCls}">${sign}${s.change_pct?.toFixed(2)||'0'}%</span>
+            </div>
+        </div>
+        <div style="color:#64748b;font-size:0.85rem;">
+            MA5: ${s.ma5?.toFixed(2)||'--'} &nbsp;|&nbsp; MA18: ${s.ma18?.toFixed(2)||'--'} &nbsp;|&nbsp; MA31: ${s.ma31?.toFixed(2)||'--'}
+        </div>
+        <div class="ma-info">${tags}</div>
+    </div>`;
+}
+</script>
 </body>
 </html>
